@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract Crowdfunding{
@@ -10,7 +11,7 @@ contract Crowdfunding{
 
 
 // constructor function -> set up the smart contract
-    constructor(unit _goal, uint _durationDays) {
+    constructor(uint _goal, uint _durationDays) {
         owner = msg.sender; // Creator becomes owner
         goal = _goal;
         deadline = block.timestamp + (_durationDays * 1 days); // Set deadline from now + days
@@ -26,7 +27,7 @@ contract Crowdfunding{
         require(block.timestamp < deadline, "Campaign ended");
         require(msg.value > 0, "Must send ETH");    // essentially an if else statment
 
-        contributions(msg.sender) += msg.value;
+        contributions[msg.sender] += msg.value;
         totalFunds += msg.value;
     }
 
@@ -35,7 +36,20 @@ contract Crowdfunding{
         require(block.timestamp >= deadline, "Campaign still active");
         require(totalFunds >= goal, "Goal not reached");
 
-        (bool success, ) = payable(owner)call{value:address(this).balance}("");
+        (bool success, ) = payable(owner).call{value:address(this).balance}("");
         // sends money to owner, address(this) is the smart contracts own address
+        require(success, "Transfer failed");
+    }
+
+    function refund() public {
+        require(block.timestamp >= deadline, "Campaign still active");
+        require(totalFunds < goal, "Goal was reached");
+
+        uint amount = contributions[msg.sender];
+        require(amount > 0, "No contribution found");
+    }
+
+    function getContractBalance() public view returns (uint) {
+        return address(this).balance;
     }
 }
